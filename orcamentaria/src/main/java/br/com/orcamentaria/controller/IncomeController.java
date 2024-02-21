@@ -11,10 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/incomes")
@@ -32,5 +29,16 @@ public class IncomeController {
                                 })
     public ResponseEntity<IncomeDTO> createIncome(@Valid  @RequestBody IncomeDTO incomeDTO) {
         return new ResponseEntity<>(service.create(incomeDTO), HttpStatus.CREATED);
+    }
+
+    @DeleteMapping(value = "/{id}")
+    @Operation(summary = "Disable an Income", description = "Endpoint used to disables an Income",
+            responses = {@ApiResponse(description = "No Content", responseCode = "204", content = @Content),
+                    @ApiResponse(description = "Bad Request", responseCode = "400", content = @Content),
+                    @ApiResponse(description = "Internal Server Error", responseCode = "500", content = @Content)
+            })
+    public ResponseEntity<?> deleteIncome(@PathVariable String id) {
+        service.disable(id);
+        return ResponseEntity.noContent().build();
     }
 }
