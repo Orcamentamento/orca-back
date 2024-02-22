@@ -4,12 +4,15 @@ import br.com.orcamentaria.dto.IncomeDTO;
 import br.com.orcamentaria.exception.RequiredObjectNotPresentException;
 import br.com.orcamentaria.model.Income;
 import br.com.orcamentaria.repository.IncomeRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @Service
@@ -36,5 +39,34 @@ public class IncomeService {
             throw new RequiredObjectNotPresentException("No record found for ID");
         }
 
+    }
+
+    public IncomeDTO findById(String id) {
+        try{
+            UUID uuid = UUID.fromString(id);
+            return mapper.convertValue(repository.findById(uuid).
+                                            orElseThrow(() -> new RequiredObjectNotPresentException("No record found for ID")),
+                                            IncomeDTO.class);
+        } catch (IllegalArgumentException e){
+            throw new RequiredObjectNotPresentException("No record found for ID");
+        }
+    }
+
+    public IncomeDTO update(IncomeDTO dto) {
+        if(dto == null) throw new RequiredObjectNotPresentException();
+
+        Income oldIncome = repository.findById(dto.getId()).
+                orElseThrow(() -> new RequiredObjectNotPresentException("No record found for ID"));
+
+        Income parsedIncome = mapper.convertValue(dto, Income.class);
+
+        try {
+            ObjectReader reader = mapper.readerForUpdating(oldIncome);
+            Income income = reader.readValue(mapper.writeValueAsBytes(parsedIncome));
+            logger.info("Updating income: " + income.getId());
+            return mapper.convertValue(repository.save(income), IncomeDTO.class);
+        } catch (IOException e) {
+            throw new RuntimeException("Erro ao processar requisição");
+        }
     }
 }

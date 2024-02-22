@@ -9,11 +9,16 @@ import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import java.time.Duration;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.AssertionsForClassTypes.within;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 public class IncomeIntegrationTest extends AbstractContainerBaseTest{
 
@@ -181,12 +186,12 @@ public class IncomeIntegrationTest extends AbstractContainerBaseTest{
         String wrongId = persistedIncome.getId().toString() + "test";
         var response =
                 given()
-                        .contentType(ContentType.JSON)
-                        .pathParam("id", wrongId)
-                        .when()
-                        .delete("/incomes/{id}")
-                        .then()
-                        .statusCode(400).extract().as(ExceptionResponse.class);
+                    .contentType(ContentType.JSON)
+                    .pathParam("id", wrongId)
+                .when()
+                    .delete("/incomes/{id}")
+                .then()
+                    .statusCode(400).extract().as(ExceptionResponse.class);
 
         assertEquals("No record found for ID", response.getMessage());
         assertEquals("uri=/incomes/"+wrongId, response.getDetails());
@@ -194,6 +199,175 @@ public class IncomeIntegrationTest extends AbstractContainerBaseTest{
 
         var disabledIncome = repository.findById(persistedIncome.getId()).get();
         assertTrue(disabledIncome.isActive());
+    }
+
+
+    @Test
+    void findIncomeWithSuccess() {
+        Income income = new Income();
+        income.setValue(1200.); income.setDescription("salario");income.setOccurrenceDate(LocalDateTime.now());
+        Income persistedIncome = repository.save(income);
+
+        var response =
+                given()
+                    .contentType(ContentType.JSON)
+                    .pathParam("id", persistedIncome.getId())
+                .when()
+                    .get("/incomes/{id}")
+                .then()
+                    .statusCode(200).extract().as(IncomeDTO.class);
+
+        assertNotNull(response.getId());
+        assertEquals(persistedIncome.getDescription(), response.getDescription());
+        assertEquals(persistedIncome.getValue(), response.getValue());
+    }
+    @Test
+    void findIncomeWithBlanckIdInformed() {
+        Income income = new Income();
+        income.setValue(1200.); income.setDescription("salario");income.setOccurrenceDate(LocalDateTime.now());
+        Income persistedIncome = repository.save(income);
+
+        var response =
+                given()
+                    .contentType(ContentType.JSON)
+                    .pathParam("id", "")
+                .when()
+                    .get("/incomes/{id}")
+                .then()
+                    .statusCode(404);
+
+        var disabledIncome = repository.findById(persistedIncome.getId()).get();
+        assertTrue(disabledIncome.isActive());
+    }
+
+    @Test
+    void findIncomeWithWrongId() {
+
+        Income income = new Income();
+        income.setValue(1200.); income.setDescription("salario");income.setOccurrenceDate(LocalDateTime.now());
+        Income persistedIncome = repository.save(income);
+
+        String wrongId = persistedIncome.getId().toString() + "test";
+        var response =
+                given()
+                    .contentType(ContentType.JSON)
+                    .pathParam("id", wrongId)
+                .when()
+                    .get("/incomes/{id}")
+                .then()
+                    .statusCode(400).extract().as(ExceptionResponse.class);
+
+        assertEquals("No record found for ID", response.getMessage());
+        assertEquals("uri=/incomes/"+wrongId, response.getDetails());
+        assertNotNull(response.getDate());
+
+        var disabledIncome = repository.findById(persistedIncome.getId()).get();
+        assertTrue(disabledIncome.isActive());
+    }
+
+    @Test
+    void updateIncomeWithSuccess() {
+        Income income = new Income();
+        income.setValue(1200.); income.setDescription("salario");income.setOccurrenceDate(LocalDateTime.now());
+        repository.save(income);
+
+        IncomeDTO update = new IncomeDTO(income.getId(), "update", 50., LocalDateTime.now());
+
+        var response =
+                given()
+                    .contentType(ContentType.JSON)
+                    .body(update)
+                .when()
+                        .put("/incomes")
+                .then()
+                    .statusCode(200).extract().as(IncomeDTO.class);
+
+        assertEquals(update.getId(), response.getId());
+        assertEquals(update.getDescription(), response.getDescription());
+        assertEquals(update.getValue(), response.getValue());
+        assertEquals(update.getOccurrenceDate(), response.getOccurrenceDate());
+    }
+
+    @Test
+    void updateIncomeWithInvalidDescription() {
+        Income income = new Income();
+        income.setValue(1200.); income.setDescription("salario");income.setOccurrenceDate(LocalDateTime.now());
+        Income persisted = repository.save(income);
+
+        IncomeDTO update = new IncomeDTO(income.getId(), "", 50., LocalDateTime.now());
+
+        var response =
+                given()
+                        .contentType(ContentType.JSON)
+                        .body(update)
+                        .when()
+                        .put("/incomes")
+                        .then()
+                        .statusCode(400).extract().as(ExceptionResponse.class);
+
+        assertEquals("description: must be informed", response.getMessage());
+        assertEquals("uri=/incomes", response.getDetails());
+        assertNotNull(response.getDate());
+
+        Income unmodifiedObject = repository.findById(persisted.getId()).get();
+        assertEquals(persisted.getDescription(), unmodifiedObject.getDescription());
+        assertEquals(persisted.getValue(), unmodifiedObject.getValue());
+        assertEquals(unmodifiedObject.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS), persisted.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS));
+    }
+
+    @Test
+    void updateIncomeWithInvalidValue() {
+        Income income = new Income();
+        income.setValue(1200.); income.setDescription("salario");income.setOccurrenceDate(LocalDateTime.now());
+        Income persisted = repository.save(income);
+
+        IncomeDTO update = new IncomeDTO(income.getId(), "salario", 0., LocalDateTime.now());
+
+        var response =
+                given()
+                        .contentType(ContentType.JSON)
+                        .body(update)
+                        .when()
+                        .put("/incomes")
+                        .then()
+                        .statusCode(400).extract().as(ExceptionResponse.class);
+
+        assertEquals("value: must be greater than 0", response.getMessage());
+        assertEquals("uri=/incomes", response.getDetails());
+        assertNotNull(response.getDate());
+
+        Income unmodifiedObject = repository.findById(persisted.getId()).get();
+        assertEquals(persisted.getDescription(), unmodifiedObject.getDescription());
+        assertEquals(persisted.getValue(), unmodifiedObject.getValue());
+        assertEquals(unmodifiedObject.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS), persisted.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS));
+    }
+
+    @Test
+    void updateIncomeWithInvalidDate() {
+        Income income = new Income();
+        income.setValue(1200.); income.setDescription("salario");income.setOccurrenceDate(LocalDateTime.now());
+        Income persisted = repository.save(income);
+
+        IncomeDTO update = new IncomeDTO(income.getId(), "salario", 50., null);
+
+        var response =
+                given()
+                        .contentType(ContentType.JSON)
+                        .body(update)
+                        .when()
+                        .put("/incomes")
+                        .then()
+                        .statusCode(400).extract().as(ExceptionResponse.class);
+
+        assertEquals("occurrenceDate: must be informed", response.getMessage());
+        assertEquals("uri=/incomes", response.getDetails());
+        assertNotNull(response.getDate());
+
+        Income unmodifiedObject = repository.findById(persisted.getId()).get();
+        assertEquals(persisted.getDescription(), unmodifiedObject.getDescription());
+        assertEquals(persisted.getValue(), unmodifiedObject.getValue());
+        assertEquals(unmodifiedObject.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS), persisted.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS));
+
     }
 
 }
