@@ -9,6 +9,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,10 +23,8 @@ public class IncomeController {
     private final IncomeService service;
     @PostMapping
     @Operation(summary = "Create a new income", description = "Endpoint used to create a new income, no needed to send id",
-                    responses = {@ApiResponse(description = "Success", responseCode = "201", content = {
-                                    @Content(mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = IncomeDTO.class))
-                                    )}),
+                    responses = {@ApiResponse(description = "Success", responseCode = "201", content =
+                                            @Content(schema = @Schema(implementation = IncomeDTO.class))),
                                 @ApiResponse(description = "Bad Request", responseCode = "400", content = @Content),
                                 @ApiResponse(description = "Internal Server Error", responseCode = "500", content = @Content)
                                 })
@@ -44,10 +45,8 @@ public class IncomeController {
 
     @GetMapping(value = "/{id}")
     @Operation(summary = "Find an income by ID", description = "Endpoint used to find a specific income",
-            responses = {@ApiResponse(description = "Success", responseCode = "200", content = {
-                            @Content(mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = IncomeDTO.class))
-                            )}),
+            responses = {@ApiResponse(description = "Success", responseCode = "200", content =
+                                        @Content(schema = @Schema(implementation = IncomeDTO.class))),
                     @ApiResponse(description = "Bad Request", responseCode = "400", content = @Content),
                     @ApiResponse(description = "Internal Server Error", responseCode = "500", content = @Content)
             })
@@ -57,14 +56,31 @@ public class IncomeController {
 
     @PutMapping()
     @Operation(summary = "Update an income", description = "Endpoint used to update an income",
-            responses = {@ApiResponse(description = "Success", responseCode = "200", content = {
-                    @Content(mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = IncomeDTO.class))
-                    )}),
+            responses = {
+                    @ApiResponse(description = "Success", responseCode = "200", content =
+                                @Content(schema = @Schema(implementation = IncomeDTO.class))),
                     @ApiResponse(description = "Bad Request", responseCode = "400", content = @Content),
                     @ApiResponse(description = "Internal Server Error", responseCode = "500", content = @Content)
             })
     public ResponseEntity<?> update(@Valid @RequestBody IncomeDTO dto) {
         return new ResponseEntity<>(service.update(dto), HttpStatus.OK);
+    }
+
+    @GetMapping()
+    @Operation(summary = "Find all incomes", description = "Endpoint used to find all incomes",
+            responses = {@ApiResponse(description = "Success", responseCode = "200", content =
+                    {
+                            @Content(
+                                    mediaType = "application/json",
+                                    array = @ArraySchema(schema = @Schema(implementation = IncomeDTO.class))
+                            )
+                    }),
+                    @ApiResponse(description = "Bad Request", responseCode = "400", content = @Content),
+                    @ApiResponse(description = "Internal Server Error", responseCode = "500", content = @Content)
+            })
+    public ResponseEntity<Page<IncomeDTO>> findAll(@RequestParam(value = "page", defaultValue = "0") Integer page,
+                                   @RequestParam(value = "limit", defaultValue = "12") Integer limit) {
+        Pageable pageable = PageRequest.of(page, limit);
+        return ResponseEntity.ok(service.findAll(pageable));
     }
 }

@@ -10,10 +10,15 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +34,7 @@ public class IncomeService {
         logger.info("New Income created: " + savedIncome.getId());
         return savedIncome;
     }
+    @Transactional
     public void disable(String id) {
         try {
             UUID uuid = UUID.fromString(id);
@@ -68,5 +74,10 @@ public class IncomeService {
         } catch (IOException e) {
             throw new RuntimeException("Erro ao processar requisição");
         }
+    }
+
+    public Page<IncomeDTO> findAll(Pageable pageable) {
+        return repository.findAll(pageable)
+                .map(income -> mapper.convertValue(income, IncomeDTO.class));
     }
 }

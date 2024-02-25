@@ -1,9 +1,6 @@
 package br.com.orcamentaria.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -30,4 +27,6 @@ public abstract class Transaction extends BaseEntity{
     @Column(nullable = false)
     @NotNull(message = "must be informed")
     private LocalDateTime occurrenceDate;
+    @ManyToOne
+    private Recurrence recurrence;
 }

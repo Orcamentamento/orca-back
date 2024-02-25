@@ -4,20 +4,25 @@ import br.com.orcamentaria.dto.IncomeDTO;
 import br.com.orcamentaria.exception.ExceptionResponse;
 import br.com.orcamentaria.model.Income;
 import br.com.orcamentaria.repository.IncomeRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import java.time.Duration;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.AssertionsForClassTypes.within;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.*;
 
 
 public class IncomeIntegrationTest extends AbstractContainerBaseTest{
@@ -370,4 +375,86 @@ public class IncomeIntegrationTest extends AbstractContainerBaseTest{
 
     }
 
+    @Test
+    public void findAllWithNoParameters() throws IOException {
+        for (int i = 1; i <= 20; i++) {
+            Income income = new Income();
+            income.setValue(i*1000d); income.setDescription("salario " + i); income.setOccurrenceDate(LocalDateTime.now());
+            repository.save(income);
+        }
+
+        var response =
+                given()
+                .when()
+                    .get("/incomes")
+                .then()
+                .statusCode(200)
+                .extract().body().asString();
+
+        List<IncomeDTO> parsedResponse = getIncomeDTOSFromPageableResponse(response);
+        assertEquals(12, parsedResponse.size());
+        parsedResponse.forEach(r -> {
+            Income income = repository.findById(r.getId()).get();
+            assertEquals(income.getDescription(), r.getDescription());
+            assertEquals(income.getValue(), r.getValue());
+            assertEquals(income.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS), r.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS));
+        });
+    }
+
+    @Test
+    public void findAllIncomesUsingPagination() throws JsonProcessingException {
+        for (int i = 1; i <= 20; i++) {
+            Income income = new Income();
+            income.setValue(i*1000d); income.setDescription("salario " + i); income.setOccurrenceDate(LocalDateTime.now());
+            repository.save(income);
+        }
+
+        var response =
+                given()
+                    .param("page", "0")
+                    .param("limit", "10")
+                .when()
+                    .get("/incomes")
+                .then()
+                    .statusCode(200)
+                    .extract().body().asString();
+
+        List<IncomeDTO> parsedResponse = getIncomeDTOSFromPageableResponse(response);
+
+        assertEquals(10, parsedResponse.size());
+        parsedResponse.forEach(r -> {
+            Income income = repository.findById(r.getId()).get();
+            assertEquals(income.getDescription(), r.getDescription());
+            assertEquals(income.getValue(), r.getValue());
+            assertEquals(income.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS), r.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS));
+        });
+
+        response =
+                given()
+                    .param("page", "1")
+                    .param("limit", "10")
+                .when()
+                    .get("/incomes")
+                .then()
+                    .statusCode(200)
+                    .extract().body().asString();
+        System.out.println(response);
+        parsedResponse = getIncomeDTOSFromPageableResponse(response);
+
+        parsedResponse.forEach(r -> {
+            Income income = repository.findById(r.getId()).get();
+            assertEquals(income.getDescription(), r.getDescription());
+            assertEquals(income.getValue(), r.getValue());
+            assertEquals(income.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS), r.getOccurrenceDate().truncatedTo(ChronoUnit.SECONDS));
+        });
+
+
+    }
+
+    private static List<IncomeDTO> getIncomeDTOSFromPageableResponse(String response) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        JsonNode jsonNode = objectMapper.readTree(response);
+        JsonNode contentNode = jsonNode.path("content");
+        return objectMapper.readValue(contentNode.toString(), new TypeReference<List<IncomeDTO>>() {});
+    }
 }
