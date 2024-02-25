@@ -17,7 +17,6 @@ import java.util.UUID;
 @Where(clause = "active = true")
 @EntityListeners(EntityValidationListener.class)
 public class BaseEntity {
-
     @Id @GeneratedValue
     private UUID id;
     private boolean active = true;

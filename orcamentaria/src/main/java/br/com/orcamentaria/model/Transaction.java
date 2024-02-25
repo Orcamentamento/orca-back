@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 @Getter @Setter
 public abstract class Transaction extends BaseEntity{
-
     @Column(nullable = false)
     @NotBlank(message = "must be informed")
     private String description;
