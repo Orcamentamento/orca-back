@@ -4,27 +4,26 @@ import br.com.orcamentaria.dto.IncomeDTO;
 import br.com.orcamentaria.exception.RequiredObjectNotPresentException;
 import br.com.orcamentaria.model.Income;
 import br.com.orcamentaria.repository.IncomeRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class IncomeService {
     Logger logger = LoggerFactory.getLogger(IncomeService.class);
     private final IncomeRepository repository;
+    @Autowired
     private final ObjectMapper mapper;
     public IncomeDTO create(IncomeDTO dto) {
         if (dto == null) throw new RequiredObjectNotPresentException();

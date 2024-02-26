@@ -15,4 +15,5 @@ public class IncomeDTO {
     private String description;
     private Double value;
     private LocalDateTime occurrenceDate;
+    private Integer recurrence;
 }
