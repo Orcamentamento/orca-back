@@ -2,20 +2,17 @@ package br.com.orcamentaria.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
-@Getter @Setter
+@Getter @Setter @EqualsAndHashCode(callSuper = true)
 public abstract class Transaction extends BaseEntity{
     @Column(nullable = false)
     @NotBlank(message = "must be informed")
@@ -26,6 +23,6 @@ public abstract class Transaction extends BaseEntity{
     @Column(nullable = false)
     @NotNull(message = "must be informed")
     private LocalDateTime occurrenceDate;
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.ALL)
     private Recurrence recurrence;
 }

@@ -6,7 +6,7 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 
 @Entity
-@Getter @Setter @Data
+@Data @EqualsAndHashCode(callSuper = true)
 @SQLDelete(sql = "UPDATE income SET active = false WHERE id = ?")
 public class Income extends Transaction{
 }

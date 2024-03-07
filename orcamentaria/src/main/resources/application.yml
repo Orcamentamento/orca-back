@@ -22,3 +22,34 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+components:
+  schemas:
+    Recurrence:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        discriminator:
+          propertyName: type
+          mapping:
+            indefinite: '#/components/schemas/Indefinite'
+            installments: '#/components/schemas/Installments'
+        Indefinite:
+          allOf:
+            - $ref: '#/components/schemas/Recurrence'
+            - type: object
+              properties:
+                endDate:
+                  type: string
+                  format: date
+        Installments:
+          allOf:
+            - $ref: '#/components/schemas/Recurrence'
+            - type: object
+              properties:
+                quantity:
+                  type: integer

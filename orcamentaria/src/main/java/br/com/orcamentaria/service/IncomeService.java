@@ -25,6 +25,7 @@ public class IncomeService {
     private final IncomeRepository repository;
     @Autowired
     private final ObjectMapper mapper;
+    @Transactional
     public IncomeDTO create(IncomeDTO dto) {
         if (dto == null) throw new RequiredObjectNotPresentException();
         var parsedIncome = mapper.convertValue(dto, Income.class);
@@ -63,11 +64,18 @@ public class IncomeService {
         Income oldIncome = repository.findById(dto.getId()).
                 orElseThrow(() -> new RequiredObjectNotPresentException("No record found for ID"));
 
-        Income parsedIncome = mapper.convertValue(dto, Income.class);
+        UUID oldRecurrenceId = oldIncome.getRecurrence() != null ? oldIncome.getRecurrence().getId() : null;
 
         try {
-            ObjectReader reader = mapper.readerForUpdating(oldIncome);
-            Income income = reader.readValue(mapper.writeValueAsBytes(parsedIncome));
+            mapper.readerForUpdating(oldIncome).readValue(mapper.writeValueAsBytes(dto));
+
+            //TODO:
+            // Alguém sabe alguma forma melhor para eu não precisar garantir o id da recurrence de forma manual?
+            // Precisei fazer isso para que não fosse gerado um novo objeto Reccurrence.
+            if(oldRecurrenceId != null)
+                oldIncome.getRecurrence().setId(oldRecurrenceId);
+
+            Income income = repository.save(oldIncome);
             logger.info("Updating income: " + income.getId());
             return mapper.convertValue(repository.save(income), IncomeDTO.class);
         } catch (IOException e) {
